@@ -1,0 +1,7 @@
+MolAlign 1.0 (C) 2026 Dr. Tobias Schulz
+Batch Processing Log
+============================
+
+Input files: ('ts.irc_IRC_Full_trj.xyz',)
+xyz data ts.irc_IRC_Full_trj.xyz written as: h-shift.xyz
+Batch template created: h-shift_split.py

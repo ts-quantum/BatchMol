@@ -1,0 +1,8 @@
+MolAlign 1.0 (C) 2026 Dr. Tobias Schulz
+Batch Processing Log
+============================
+
+Input files: ('ts1.irc_IRC_Full_trj.xyz',)
+  -> Reversed trajectory for: ts1.irc_IRC_Full_trj.xyz
+xyz data ts1.irc_IRC_Full_trj.xyz written as: radical.xyz
+Batch template created: radical_split.py

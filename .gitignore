@@ -1,0 +1,13 @@
+# dev folder
+/dev/
+
+# python system files and folders
+**__pycache__/
+*.pyc
+.DS_Store 
+
+# venv
+
+# IDE settings
+.DS_Store
+.vscode/
