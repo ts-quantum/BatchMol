@@ -7,3 +7,7 @@ python3 ../../../batch.py ../orca/*.molden -o ESP -p esp -v 0.036 -m bld -c hsv
 ex2
 python3 ../../../batch.py ../orca/*.molden -o SPIN -n spin -p spin-m -v 0.5 -m pov -c turbo
 python3 ../../../batch.py ../orca/*.molden -o SPIN -p spin-m -v 0.5 -m bld -c turbo
+
+ex3
+python3 ../../../batch.py ../work/*.fchk -o h-shift -n mol -p esp -v 0.06 -m pov
+python3 ~/python/BatchMol/batch.py ../work/*.fchk -o h-shift -n homo -p mo -i 18 -m pov

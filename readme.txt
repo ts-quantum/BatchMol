@@ -52,7 +52,7 @@ structure differs from the example setup.
 - **File Permissions**: On Linux/macOS, remember to make the batch script executable: 
 `chmod +x run_h-shift_batch.sh`.
 
-Example 1: 1,5-H-Shift (Full Workflow Integration)
+Example 1: 1,5-H-Shift (Full Workflow Integration) - HF/6-31G
 
   This example demonstrates the complete pipeline from a raw IRC trajectory to 
   high-end ESP and MO animations.
@@ -89,7 +89,7 @@ Example 1: 1,5-H-Shift (Full Workflow Integration)
   POV-Ray: Use the generated .inc files with the provided video.pov and video.ini templates 
   to render the final ray-traced frames.
 
-Example 2: Radical Bromination of Propene (First Step)
+Example 2: Radical Bromination of Propene (First Step) - B3LYP/def2-SVP
 
   This example focuses on the addition of a bromine radical to propene, 
   highlighting the shift of spin density during the C-Br bond formation.
@@ -123,6 +123,31 @@ Example 2: Radical Bromination of Propene (First Step)
   4. Final Rendering
   Use the provided video.pov and video.ini templates to render the POV-Ray frames and combine 
   them into an MP4 video (e.g., via FFmpeg).
+[1] F. Neese, "Software update: the ORCA program system — Version 6.0", Wiley Interdiscip. Rev.: Comput. Mol. Sci., 
+15, e70019 (2025). doi: 10.1002/wcms.70019.
+
+Example 3 1-5-H-Shift (Splitting for BatchMol) B3LYP/cc-pVDZ
+  Pathway Description:
+  This case study explores the [1,5]-sigmatropic hydrogen migration between the terminal methyl group 
+  and the carbonyl oxygen of but-2-en-1-one. This classic rearrangement serves as a perfect model to 
+  study the continuous transformation of electronic structures during a chemical reaction.
+  Computational Workflow:
+  The Intrinsic Reaction Coordinate (IRC) trajectory was high-level mapped using PSI4. To bridge the 
+  gap between raw quantum chemical data and high-end visualization, MolAlign was utilized to 
+  generate a dedicated post-processing script: irc_split.py.
+  Key Features & Visualization:
+  Automated Splitting: The script extracts every point along the IRC path, generating individual .molden 
+  and .fchk files.
+  BatchMol Integration: These files are ready for seamless processing with BatchMol, allowing the 
+  automated generation of input data for both Blender and POV-Ray.
+  Electronic Dynamics: The provided examples demonstrate how to visualize the dynamic evolution 
+  of molecular properties, such as the Highest Occupied Molecular Orbital (HOMO) and the Electrostatic 
+  Potential (ESP), as the reaction progresses.
+  Raytracing Excellence: Pre-configured POV-Ray files for HOMO and ESP transitions are included, 
+  showcasing the transformation from a reactant to a product in publication-quality renderings.
+
+[2] D. G. A. Smith, L. A. Burns, et al., "Psi4 1.4: Open-source software for high-throughput quantum chemistry", 
+J. Chem. Phys., 152, 184108 (2020). doi: 10.1063/5.0006002.
 
 ## Installation
 

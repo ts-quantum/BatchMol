@@ -16,10 +16,11 @@ from tqdm import tqdm # progress bar!!
 from numba import njit, prange
 import numba
 import pyscf.tools.molden as molden_tools
+from cclib.io import ccread
 import pyvista as pv
 import psutil 
 import platform,subprocess
-from pyscf import scf, lib, data, dft
+from pyscf import scf, lib, data, dft, gto 
 from collections import defaultdict
 import click # input during execution
 
@@ -96,6 +97,85 @@ class MoleculeData: #always call arguments by name!
             orb_labels=orb_labels,
             spin=spin,
             esp_mesh=None
+        )
+    @classmethod
+    def fix_fchk_format(cls,filepath):
+        import re
+        import io    
+        with open(filepath, 'r') as f:
+            lines = f.readlines()
+        fixed_lines = []
+        for line in lines:
+            # check and repair all lines containing data (if necessary)
+            if line.startswith(" "):
+                # look for number followed by sign (no e/E)
+                # e.g.: 0.123-4.567 -> 0.123 -4.567
+                line = re.sub(r'(\d)([+-]\d\.)', r'\1 \2', line)
+                # Special case for 'lost' spaces with extreme exponents.
+                # e.g.: 5.78e-02-4.48e-149 -> 5.78e-02 -4.48e-149
+                line = re.sub(r'(e[+-]\d{2,3})([+-]\d\.)', r'\1 \2', line)
+                
+            fixed_lines.append(line)
+            
+        return io.StringIO("".join(fixed_lines))
+
+    @classmethod
+    def from_fchk(cls, filepath):
+        
+        # Apply fix
+        fixed_file_stream = MoleculeData.fix_fchk_format(filepath)
+        # 1. load data with cclib 
+        data = ccread(fixed_file_stream)
+        
+        # 2. manually build PySCF molecule
+        mol = gto.Mole()
+        # Atoms from cclib (atomnos = atomic number, atomcoords in Angström)
+        mol.atom = [[data.atomnos[i], data.atomcoords[-1][i]] for i in range(data.natom)]
+        
+        mol.basis = data.metadata.get('basis_set')
+
+        mol.charge = data.charge
+        mol.spin = data.mult - 1
+        
+        mol.cart = True 
+        mol.build()
+
+        n_ao_fchk = data.mocoeffs[0].shape[1]
+        
+        if mol.nao != n_ao_fchk:
+            mol.cart = False
+            mol.build()
+            if mol.nao != n_ao_fchk:
+                print(f"KRITISCH: Basis-Mismatch! PySCF AOs: {mol.nao}, FCHK AOs: {n_ao_fchk}")
+
+        # 4. Data Extraction (Alpha/Beta Handling)
+        is_uhf = len(data.homos) == 2
+        if is_uhf:
+            mo_coeff = [m.T for m in data.mocoeffs] # Transpose for (AO, MO)
+            mo_energy = data.moenergies
+            # Generate Occupation
+            mo_occ = [np.zeros(len(e)) for e in mo_energy]
+            mo_occ[0][:data.homos[0]+1] = 1.0
+            mo_occ[1][:data.homos[1]+1] = 1.0
+            orb_labels = [[f"Alpha MO {i}" for i in range(len(mo_energy[0]))],
+                        [f"Beta MO {i}" for i in range(len(mo_energy[1]))]]
+        else:
+            mo_coeff = data.mocoeffs[0].T
+            mo_energy = data.moenergies[0]
+            mo_occ = np.zeros(len(mo_energy))
+            mo_occ[:data.homos[0]+1] = 2.0
+            orb_labels = [f"MO {i}" for i in range(len(mo_energy))]
+
+        return cls(
+            name=os.path.basename(filepath),
+            atom_points=data.atomcoords[-1],
+            atom_types=data.atomnos.tolist(),
+            mol=mol,
+            mo_energy=mo_energy,
+            mo_coeff=mo_coeff,
+            mo_occ=mo_occ,
+            orb_labels=orb_labels,
+            spin=mol.spin
         )
 
 ################### Plotting #####################################
@@ -1000,7 +1080,7 @@ cov_radii = {
 default_radius = 1.0
 
 # current Version !!!!
-ver_no = "4.0"
+ver_no = "4.1"
 # new:
 # - corrected ESP and Spin Density
 # - adaptive parallelized mode for ESP calculation
@@ -1085,7 +1165,14 @@ def main(files,o_file,obj_name,iso_level, n_pts, padding, type,cmap,orb_index,sp
             old_mo_coeffs = None
             for i, name in enumerate(p_bar, start=1):
                 p_bar.set_description(f"processing {name}")
-                new_data=MoleculeData.from_molden(name)
+                ext = name.split('.')[-1]
+                if ext == 'molden':
+                    new_data=MoleculeData.from_molden(name)
+                elif ext == 'fchk':
+                    new_data=MoleculeData.from_fchk(name)
+                else: 
+                    print(f"invalid input format: {ext}")
+                    sys.exit(1)
 
                 atom_points = new_data.atom_points
                 atom_types = new_data.atom_types
