@@ -42,8 +42,9 @@ Usage: `python batchmol.py [FILES] [OPTIONS]`
 
 ## Examples
 ### ⚠️ Configuration Note
-The provided scripts (`h-shift_split.py`, `run_h-shift_batch.sh`, and the Blender import scripts)
+The provided scripts (`*_split.py`, `run_*_batch.sh`, and the Blender import scripts)
 contain hardcoded paths and command names. Please adjust these to match your local environment:
+[_split.py and run_*_batch.sh have been created with MolAlign]
 
 - **Quantum Chemistry**: Ensure the commands for `orca` and the conversion tool `orca_2mkl` 
 (to generate `.molden` files) are correctly defined in the shell and split scripts.
