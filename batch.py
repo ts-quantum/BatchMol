@@ -25,36 +25,9 @@ from pyscf import scf, lib, data, dft, gto
 from collections import defaultdict
 import click # input during execution
 
-# set numba path ($HOME/.numba_cache)
-numba_cache = os.path.expanduser('~/.numba_cache')
-# create folder 
-if not os.path.exists(numba_cache):
-    os.makedirs(numba_cache)
-# use folder for numba cache
-os.environ['NUMBA_CACHE_DIR'] = numba_cache
-
-#create binary as onefile
 """
-python3 -m PyInstaller --onefile --clean \
---name BatchMol_port \
---collect-all pyvista \
---collect-all vtk \
---collect-all pyscf \
---copy-metadata pyscf \
---copy-metadata tqdm \
---copy-metadata numba \
---add-binary "/opt/homebrew/opt/libomp/lib/libomp.dylib:." 
---hidden-import pyscf.tools.molden \
---hidden-import numba.core.typeconv.rules \
---hidden-import sklearn.utils._cython_blas \
---hidden-import vtkmodules.all \
-batch.py
-"""
-#create binary as onefolder
-#copy to location sudo cp -r ~/python/cubes-batch/dist/BatchMol/* /usr/local/BatchMol
-#create symlink:  sudo ln -s /usr/local/BatchMol/BatchMol /usr/local/bin/BatchMol
-"""
-python3 -m PyInstaller --onedir --clean --noconfirm --name BatchMol --collect-all pyvista --collect-all vtk --collect-all pyscf --copy-metadata pyscf --copy-metadata tqdm --copy-metadata numba --add-binary "/opt/homebrew/opt/libomp/lib/libomp.dylib:." --hidden-import pyscf.tools.molden --hidden-import numba.core.typeconv.rules --hidden-import sklearn.utils._cython_blas --hidden-import vtkmodules.all batch.py
+BUILD - macOS
+python -m nuitka --standalone --macos-create-app-bundle --macos-app-name="BatchMol" --enable-plugin=numpy --enable-plugin=matplotlib --enable-plugin=anti-bloat --nofollow-import-to=pyscf --nofollow-import-to=vtkmodules --no-deployment-flag=excluded-module-usage --no-deployment-flag=self-execution --jobs=8 --output-dir=dist --remove-output batch.py
 
 """
 
@@ -1110,7 +1083,7 @@ ver_no = "4.2"
               help='alpha or beta spin default "0" = alpha')
 @click.option('--v_max', '-v', type=float, default=None,
               help='limit for scalebar, v_min=-v_max, default +/-0.15 ESP, +/-1 Spin')
-@click.option('--o_mode', '-m', default="pov",
+@click.option('--o_mode', '-M', default="pov",
               help='output mode "pov": POV-Ray *.inc (default), "bld": Blender *.glb')
 
 def main(files,o_file,obj_name,iso_level, n_pts, padding, type,cmap,orb_index,spin,v_max,o_mode):

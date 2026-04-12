@@ -75,15 +75,15 @@ Example 1: 1,5-H-Shift (Full Workflow Integration) - HF/6-31G
   (POV-Ray and Blender):
   Molecular Orbitals (HOMO):
   # POV-Ray include file
-  python3 batch.py ./orca/*.molden -p mo -i 18 -m pov -n homo
+  python3 batch.py ./orca/*.molden -p mo -i 18 -M pov -n homo
   # Blender GLB files
-  python3 batch.py ./orca/*.molden -p mo -i 18 -m bld
+  python3 batch.py ./orca/*.molden -p mo -i 18 -M bld
   Electrostatic Potential (ESP) Mapping:
 
   # POV-Ray (using HSV colormap and fixed scaling)
-  python3 batch.py ./orca/*.molden -p esp -v 0.036 -m pov -c hsv -o ESP -n esp
+  python3 batch.py ./orca/*.molden -p esp -v 0.036 -M pov -c hsv -o ESP -n esp
   # Blender (using HSV colormap and fixed scaling)
-  python3 batch.py ./orca/*.molden -p esp -v 0.036 -m bld -c hsv -o ESP
+  python3 batch.py ./orca/*.molden -p esp -v 0.036 -M bld -c hsv -o ESP
 
   4. Final Rendering
   Blender: Import the generated .glb files using the provided import_and_animate.py script.
@@ -116,10 +116,10 @@ Example 2: Radical Bromination of Propene (First Step) - B3LYP/def2-SVP
   We use the turbo colormap to visualize the spin density evolution with a fixed scale to 
   ensure a smooth animation:
   # POV-Ray include file
-  python3 batch.py ./orca/*.molden -o SPIN -n spin -p spin-m -v 0.5 -m pov -c turbo
+  python3 batch.py ./orca/*.molden -o SPIN -n spin -p spin-m -v 0.5 -M pov -c turbo
 
   # Blender GLB files
-  python3 batch.py ./orca/*.molden -o SPIN -p spin-m -v 0.5 -m bld -c turbo
+  python3 batch.py ./orca/*.molden -o SPIN -p spin-m -v 0.5 -M bld -c turbo
 
   4. Final Rendering
   Use the provided video.pov and video.ini templates to render the POV-Ray frames and combine 

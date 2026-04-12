@@ -1,0 +1,63 @@
+============================================================
+BatchMol - Credits & Licenses
+============================================================
+
+BatchMol is a specialized command-line tool for high-throughput 
+analysis of quantum chemical data, including orbital phase 
+stabilization, ESP mapping, and batch property exports.
+
+This application is provided as open-source software. 
+It bundles several third-party libraries, each governed 
+by their own licenses:
+
+SCIENTIFIC COMPUTING & QUANTUM CHEMISTRY:
+------------------------------------------------------------
+1. PySCF (Apache License 2.0)
+   https://pyscf.org
+   (Used for electronic structure calculations and GTO handling)
+
+2. cclib (BSD 3-Clause License)
+   https://github.io
+   (Used for parsing quantum chemical log files)
+
+3. NumPy (BSD License)
+   https://numpy.org
+
+4. SciPy (BSD License)
+   https://scipy.org
+
+VISUALIZATION & EXPORT:
+------------------------------------------------------------
+5. PyVista & VTK (MIT / BSD License)
+   https://pyvista.org | https://vtk.org
+
+6. Matplotlib (PSF/BSD compatible)
+   https://matplotlib.org
+
+UTILITIES:
+------------------------------------------------------------
+7. Click (BSD License)
+   https://palletsprojects.com
+   (Command-line interface provider)
+
+8. tqdm (MIT/MPL License)
+   https://github.io
+   (Progress bar integration)
+
+9. psutil (BSD License)
+   https://github.com
+
+------------------------------------------------------------
+DISTRIBUTION & SOURCE CODE:
+The source code for this application is available at:
+https://github.com/ts-quantum/BatchMol
+
+This software is distributed in the hope that it will be 
+useful, but WITHOUT ANY WARRANTY.
+============================================================
+## Disclaimer
+THIS SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, 
+INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE 
+AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, 
+DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, 
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
