@@ -1,5 +1,8 @@
 import numpy as np
 import os, sys
+base_dir = os.path.dirname(sys.executable)
+if base_dir not in sys.path:
+    sys.path.insert(0, base_dir)
 
 # set path for Matplotlib config (e.g. ~/.matplotlib_cache)
 mpl_cache_dir = os.path.expanduser('~/.matplotlib_cache')
@@ -13,8 +16,6 @@ import matplotlib.pyplot as plt
 from matplotlib import colormaps
 from contextlib import redirect_stderr
 from tqdm import tqdm # progress bar!!
-from numba import njit, prange
-import numba
 import pyscf.tools.molden as molden_tools
 from cclib.io import ccread
 import pyvista as pv
@@ -349,15 +350,11 @@ def get_optimal_cores():
     cores = psutil.cpu_count(logical=False) or os.cpu_count() or 2
     return max(1, cores - 1)
 
-@numba.njit(fastmath=True, cache=True) # stabilize orbital phase during animation!!
+# stabilize orbital phase during animation!!
 def fix_orbital_phase(current_coeffs, previous_coeffs):
-    # range(current_coeffs.shape[1]) number for orbitals
-    for i in range(current_coeffs.shape[1]):
-        overlap = 0.0
-        for j in range(current_coeffs.shape[0]):
-            overlap += current_coeffs[j, i] * previous_coeffs[j, i]
-        if overlap < 0.0:
-            current_coeffs[:, i] *= -1.0
+# range(current_coeffs.shape[1]) number for orbitals
+    overlaps = np.sum(current_coeffs * previous_coeffs, axis=0)
+    current_coeffs[:, overlaps < 0] *= -1.0
     return current_coeffs
 
 def get_validated_dm(mol, mo_coeff, mo_occ):
@@ -1080,7 +1077,7 @@ cov_radii = {
 default_radius = 1.0
 
 # current Version !!!!
-ver_no = "4.1"
+ver_no = "4.2"
 # new:
 # - corrected ESP and Spin Density
 # - adaptive parallelized mode for ESP calculation
