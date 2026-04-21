@@ -956,10 +956,9 @@ def generate_blender_script(path):
     # Ensure the path uses forward slashes for Blender/Python compatibility
     current_path = os.getcwd().replace("\\", "/") 
     
-    blender_script = f"""import bpy, os, re
-# created with BatchMol by (C) 2026 Dr. Tobias Schulz
+    blender_script = f"""# created with BatchMol {ver_no} by (C) 2026 Dr. Tobias Schulz
 # ==============================================================================
-# USER GUIDE for MolVista Blender Animation
+# USER GUIDE for BatchMol Blender Animation
 # ==============================================================================
 # 1. GLOBAL VISUAL CONTROL: 
 #    This script links all imported meshes to "MASTER" materials in your template.
@@ -976,13 +975,14 @@ def generate_blender_script(path):
 #
 # 3. POSITIONING:
 #    Select the 'TRAJECTORY_CONTROL' (Empty) to move, rotate, or scale the 
-#    entire animation sequence simultaneously over your water/scene.
+#    entire animation sequence simultaneously over your scene.
 #
 # 4. SCALEBAR:
 #    The static scalebar objects (lbl_***, scale_bar) are also linked to the 
 #    controller but stay visible throughout the entire timeline.
 # ==============================================================================
 
+import bpy, os, re
 # --- Settings ---
 path_to_glb = "{current_path}"
 # Protect scene environment from being deleted
@@ -1106,10 +1106,9 @@ def generate_blender_script_one(path):
     """
     script_path = os.path.splitext(path)[0] + "_setup.py"
     
-    blender_script = f"""# created with BatchMol by (C) 2026 Dr. Tobias Schulz
-import bpy, re
+    blender_script = f"""# created with BatchMol {ver_no} by (C) 2026 Dr. Tobias Schulz
 # ==============================================================================
-# USER GUIDE for MolVista Blender Animation
+# USER GUIDE for BatchMol Blender Animation
 # ==============================================================================
 # 1. GLOBAL VISUAL CONTROL: 
 #    This script links all imported meshes to "MASTER" materials in your template.
@@ -1126,13 +1125,14 @@ import bpy, re
 #
 # 3. POSITIONING:
 #    Select the 'TRAJECTORY_CONTROL' (Empty) to move, rotate, or scale the 
-#    entire animation sequence simultaneously over your water/scene.
+#    entire animation sequence simultaneously over your scene.
 #
 # 4. SCALEBAR:
 #    The static scalebar objects (lbl_***, scale_bar) are also linked to the 
 #    controller but stay visible throughout the entire timeline.
 # ==============================================================================
 
+import bpy, re, os
 # --- Configuration ---
 # Match objects with an index like _001, _002 at the end
 frame_pattern = re.compile(r'.*_\\d+$')
