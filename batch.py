@@ -1457,7 +1457,7 @@ def main(files,o_file,obj_name,iso_level, n_pts, padding, type,cmap,orb_index,sp
         if i_files:
             p_bar = tqdm(i_files)
             old_mo_coeffs = None
-            for i, name in enumerate(p_bar, start=1):
+            for i, name in enumerate(p_bar):  # start i=0
                 p_bar.set_description(f"processing {name}")
                 new_data=MoleculeData.from_molden(name)
                 pl = pv.Plotter() #!!! 
