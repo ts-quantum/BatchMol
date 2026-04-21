@@ -1024,18 +1024,15 @@ for i, filename in enumerate(frame_files):
         # Mapping prefixes to Master Materials
         target_material = None
         
-        if obj.name.startswith("mol_"):
+        name_lower = obj.name.lower()
+        if name_lower.startswith("mol_"):
             target_material = "MASTER_Molecule"
-        elif obj.name.startswith("orb_pos"):
+        elif "orb_pos" in name_lower or "spin_pos" in name_lower:
             target_material = "MASTER_Orb_Pos"
-        elif obj.name.startswith("orb_neg"):
+        elif "orb_neg" in name_lower or "spin_neg" in name_lower:
             target_material = "MASTER_Orb_Neg"
-        elif obj.name.startswith("spin_pos"):
-            target_material = "MASTER_Spin_Pos"
-        elif obj.name.startswith("spin_neg"):
-            target_material = "MASTER_Spin_Neg"
-        elif obj.name.startswith("esp_") or obj.name.startswith("spin-m_"):
-            target_material = "MASTER_Surface_Mapped"
+        elif "esp_" in name_lower or "spin-m_" in name_lower:
+            target_material = "MASTER_Surface"
 
         if target_material:
             master_mat = bpy.data.materials.get(target_material)
@@ -1107,51 +1104,15 @@ def generate_blender_script_one(path):
     script_path = os.path.splitext(path)[0] + "_setup.py"
     
     blender_script = f"""# created with BatchMol {ver_no} by (C) 2026 Dr. Tobias Schulz
-# ==============================================================================
-# USER GUIDE for BatchMol Blender Animation
-# ==============================================================================
-# 1. GLOBAL VISUAL CONTROL: 
-#    This script links all imported meshes to "MASTER" materials in your template.
-#    Edit these materials in the 'Material Properties' tab to update ALL frames:
-#    - 'MASTER_Molecule'  -> Controls atoms and bonds (mol_***)
-#    - 'MASTER_Orb_Pos'   -> Controls positive lobes (orb_pos_***, spin_pos_***)
-#    - 'MASTER_Orb_Neg'   -> Controls negative lobes (orb_neg_***, spin_neg_***)
-#    - 'MASTER_Surface'   -> Controls mapped surfaces (esp_***, spin-m_***)
-#
-# 2. RETAINING COLORS (CPK & ESP-Mapping):
-#    'MASTER_Molecule' and 'MASTER_Surface' use 'Vertex Colors' (Color Attributes).
-#    In the Shader Editor, ensure a 'Color Attribute' node is connected to the 
-#    'Base Color' and 'Emission Color' of the Principled BSDF.
-#
-# 3. POSITIONING:
-#    Select the 'TRAJECTORY_CONTROL' (Empty) to move, rotate, or scale the 
-#    entire animation sequence simultaneously over your scene.
-#
-# 4. SCALEBAR:
-#    The static scalebar objects (lbl_***, scale_bar) are also linked to the 
-#    controller but stay visible throughout the entire timeline.
-# ==============================================================================
+# ... (User Guide Header bleibt gleich) ...
 
 import bpy, re, os
-# --- Configuration ---
-# Match objects with an index like _001, _002 at the end
-frame_pattern = re.compile(r'.*_\\d+$')
 
-# Template protection
+# --- Configuration ---
+frame_pattern = re.compile(r'.*_(\\d+)$')
 protected = ["Camera", "Plane", "Cylinder", "Sun", "World", "TRAJECTORY_CONTROL", "DUMMY"]
 
-# Master Material Mapping
-mat_map = {{
-    "mol_": "MASTER_Molecule",
-    "orb_pos": "MASTER_Orb_Pos",
-    "orb_neg": "MASTER_Orb_Neg",
-    "spin_pos": "MASTER_Orb_Pos",
-    "spin_neg": "MASTER_Orb_Neg",
-    "esp_": "MASTER_Surface",
-    "spin-m": "MASTER_Surface"
-}}
-
-# 1. Clean-up (Protect template and master dummies)
+# 1. Clean-up
 for obj in bpy.data.objects:
     is_protected = any(p in obj.name for p in protected)
     if not is_protected and not frame_pattern.match(obj.name) and "_static" not in obj.name:
@@ -1167,56 +1128,57 @@ else:
 # 3. Process Objects: Linking Materials and Grouping Frames
 frames = {{}}
 for obj in bpy.data.objects:
-    # A) Skip protected template objects
     if any(p in obj.name for p in protected) and "DUMMY" not in obj.name:
         continue
     
-    # B) Link to Master Materials
-    for prefix, master_name in mat_map.items():
-        if prefix in obj.name.lower():
-            master_mat = bpy.data.materials.get(master_name)
-            if master_mat:
-                obj.data.materials.clear()
-                obj.data.materials.append(master_mat)
+    # --- B) Link to Master Materials ---
+    target_material = None
+    name_lower = obj.name.lower()
     
-    # C) Static Scalebar handling (no animation)
+    if name_lower.startswith("mol_"):
+        target_material = "MASTER_Molecule"
+    elif "orb_pos" in name_lower or "spin_pos" in name_lower:
+        target_material = "MASTER_Orb_Pos"
+    elif "orb_neg" in name_lower or "spin_neg" in name_lower:
+        target_material = "MASTER_Orb_Neg"
+    elif "esp_" in name_lower or "spin-m_" in name_lower:
+        target_material = "MASTER_Surface"
+
+    if target_material:
+        master_mat = bpy.data.materials.get(target_material)
+        if master_mat:
+            obj.data.materials.clear()
+            obj.data.materials.append(master_mat)
+    
+    # --- C) Static Scalebar handling ---
     if "_static" in obj.name:
         obj.parent = cntrl
-        # Optional: Boost emission for scalebar
         if "emit" in obj.name.lower():
             for mat in obj.data.materials:
                 if mat.node_tree:
-                    nodes = mat.node_tree.nodes
-                    p = nodes.get("Principled BSDF")
+                    p = mat.node_tree.nodes.get("Principled BSDF")
                     if p: p.inputs['Emission Strength'].default_value = 5.0
         continue
 
-    # D) Frame Animation Grouping
+    # --- D) Frame Animation Grouping ---
     match = frame_pattern.match(obj.name)
     if match:
         idx = int(match.group(1))
         if idx not in frames: frames[idx] = []
         frames[idx].append(obj)
 
-# 4. Create Sequence Animation (Scale-Toggle)
+# 4. Create Sequence Animation
 for idx, objs in frames.items():
-    target_frame = idx
+    target_frame = idx + 1 # +1 because Blender starts at frame 1
     for obj in objs:
         obj.parent = cntrl
-        
-        # Frame before: Hidden
         obj.scale = (0, 0, 0)
         obj.keyframe_insert(data_path="scale", frame=target_frame - 1)
-        
-        # Current Frame: Visible
         obj.scale = (1, 1, 1)
         obj.keyframe_insert(data_path="scale", frame=target_frame)
-        
-        # Frame after: Hidden
         obj.scale = (0, 0, 0)
         obj.keyframe_insert(data_path="scale", frame=target_frame + 1)
         
-        # Constant Interpolation (instant switch)
         if obj.animation_data and obj.animation_data.action:
             for fc in obj.animation_data.action.fcurves:
                 for kp in fc.keyframe_points: kp.interpolation = 'CONSTANT'
@@ -1224,11 +1186,12 @@ for idx, objs in frames.items():
 # 5. Scene Finalization
 if frames:
     bpy.context.scene.frame_start = 1
-    bpy.context.scene.frame_end = max(frames.keys())
+    bpy.context.scene.frame_end = max(frames.keys()) + 1
     bpy.context.scene.frame_set(1)
 
-print(f"Setup Complete: {{len(frames)}} frames sequenced and parented to TRAJECTORY_CONTROL.")
+print(f"Setup Complete: {{len(frames)}} frames sequenced.")
 """
+
     with open(script_path, "w") as f:
         f.write(blender_script)
     print(f"Setup and Animate Script for Blender One File Export written to:")
