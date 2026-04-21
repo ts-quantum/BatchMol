@@ -896,43 +896,53 @@ def export_pov_colorbar(filename, cmap_name, clim, type, height=2.0, radius=0.08
         f.write("}\n")
 
 #### BLENDER ColorBar/Scalebar ######
-def create_3d_colorbar_group(v_min, v_max, mode="esp", cmap_name="RdBu", height=3.0, width=0.3):
-    visuals = [] # List for (mesh, name, kwargs)
+def create_3d_colorbar_group(v_min, v_max, mode="esp", cmap_name="rainbow", height=1.5, width=0.15):
+    """
+    Creates a compact 3D colorbar. 
+    Height reduced from 3.0 to 1.5, width from 0.3 to 0.15.
+    """
+    visuals = [] 
     
-    # 1. Rectengular Bar (
-    # Position: right of the molecule (x=5), vertical (y)
-    cb_poly = pv.Plane(center=(5.0, 0.0, 0.0), direction=(1, 0, 0), 
+    # 1. Rectangular Bar
+    # Position shifted closer to the center (x=3.5 instead of 5)
+    cb_poly = pv.Plane(center=(3.5, 0.0, 0.0), direction=(1, 0, 0), 
                        i_size=width, j_size=height)
     
-    # colors
     y_min, y_max = np.min(cb_poly.points[:, 1]), np.max(cb_poly.points[:, 1])
     norm_values = np.interp(cb_poly.points[:, 1], (y_min, y_max), (v_min, v_max))
     cb_poly.point_data["cb_scalars"] = norm_values
     
-    visuals.append((cb_poly, "cbar", {"scalars": "cb_scalars", "cmap": cmap_name, "clim": [v_min, v_max]}))
+    # Material name 'emit_scale' helps us identify it in Blender for emission setup
+    visuals.append((cb_poly, "scale_bar_emit", {
+        "scalars": "cb_scalars", 
+        "cmap": cmap_name, 
+        "clim": [v_min, v_max]
+    }))
 
-    # 2. Labels (number as 3D-Text
-    # right next to the bar
+    # 2. Labels (Smaller text)
     label_args = {"color": "white", "smooth_shading": True}
+    text_scale = 0.12  # Reduced from 0.25
+    text_depth = 0.02
     
     # v_min Label (bottom)
-    txt_min = pv.Text3D(f"{v_min:.2f}", depth=0.05)
-    txt_min.scale(0.25)
-    txt_min.translate([5.3, -height/2, 0])
-    visuals.append((txt_min, "lbl_min", label_args))
+    txt_min = pv.Text3D(f"{v_min:.2f}", depth=text_depth)
+    txt_min.scale(text_scale)
+    # Positions adjusted for smaller height
+    txt_min.translate([3.7, -height/2, 0])
+    visuals.append((txt_min, "lbl_min_emit", label_args))
     
     # v_max Label (top)
-    txt_max = pv.Text3D(f"{v_max:.2f}", depth=0.05)
-    txt_max.scale(0.25)
-    txt_max.translate([5.3, height/2 - 0.2, 0])
-    visuals.append((txt_max, "lbl_max", label_args))
+    txt_max = pv.Text3D(f"{v_max:.2f}", depth=text_depth)
+    txt_max.scale(text_scale)
+    txt_max.translate([3.7, height/2 - 0.1, 0])
+    visuals.append((txt_max, "lbl_max_emit", label_args))
     
-    # Titel (above)
-    title_str = "ESP [Hartree]" if mode == "esp" else "Spin [au]"
-    txt_title = pv.Text3D(title_str, depth=0.05)
-    txt_title.scale(0.3)
-    txt_title.translate([4.9, height/2 + 0.4, 0])
-    visuals.append((txt_title, "lbl_title", label_args))
+    # Title (above)
+    title_str = "ESP [a.u.]" if mode == "esp" else "Spin [a.u.]"
+    txt_title = pv.Text3D(title_str, depth=text_depth)
+    txt_title.scale(text_scale * 1.2)
+    txt_title.translate([3.4, height/2 + 0.2, 0])
+    visuals.append((txt_title, "lbl_title_emit", label_args))
     
     return visuals
 
@@ -940,63 +950,289 @@ def create_3d_colorbar_group(v_min, v_max, mode="esp", cmap_name="RdBu", height=
 def generate_blender_script(path):
     """
     Generates a companion Blender Python script for the exported GLB file.
-    This script sets up a frame-by-frame animation by toggling object visibility.
+    This script sets up a frame-by-frame animation by toggling object scale.
     """
     script_path = os.path.splitext(path)[0] + "_setup.py"
-    current_path = os.getcwd()
-    blender_script = f"""# created with BatchMol by (C) 2026 Dr. Tobias Schulz
-import bpy
-import os
+    # Ensure the path uses forward slashes for Blender/Python compatibility
+    current_path = os.getcwd().replace("\\", "/") 
+    
+    blender_script = f"""import bpy, os, re
+# created with BatchMol by (C) 2026 Dr. Tobias Schulz
+# ==============================================================================
+# USER GUIDE for MolVista Blender Animation
+# ==============================================================================
+# 1. GLOBAL VISUAL CONTROL: 
+#    This script links all imported meshes to "MASTER" materials in your template.
+#    Edit these materials in the 'Material Properties' tab to update ALL frames:
+#    - 'MASTER_Molecule'  -> Controls atoms and bonds (mol_***)
+#    - 'MASTER_Orb_Pos'   -> Controls positive lobes (orb_pos_***, spin_pos_***)
+#    - 'MASTER_Orb_Neg'   -> Controls negative lobes (orb_neg_***, spin_neg_***)
+#    - 'MASTER_Surface'   -> Controls mapped surfaces (esp_***, spin-m_***)
+#
+# 2. RETAINING COLORS (CPK & ESP-Mapping):
+#    'MASTER_Molecule' and 'MASTER_Surface' use 'Vertex Colors' (Color Attributes).
+#    In the Shader Editor, ensure a 'Color Attribute' node is connected to the 
+#    'Base Color' and 'Emission Color' of the Principled BSDF.
+#
+# 3. POSITIONING:
+#    Select the 'TRAJECTORY_CONTROL' (Empty) to move, rotate, or scale the 
+#    entire animation sequence simultaneously over your water/scene.
+#
+# 4. SCALEBAR:
+#    The static scalebar objects (lbl_***, scale_bar) are also linked to the 
+#    controller but stay visible throughout the entire timeline.
+# ==============================================================================
 
 # --- Settings ---
-path_to_glb = "{current_path}" # adapt path to *glb files!
-extension = ".glb"
+path_to_glb = "{current_path}"
+# Protect scene environment from being deleted
+protected = ["Camera", "Plane", "Cylinder", "Sun", "World", "TRAJECTORY_CONTROL"]
 
-# 1. Empty current Scene (recommended)
-bpy.ops.object.select_all(action='SELECT')
-bpy.ops.object.delete()
+# 1. Clean-up (Delete only non-template objects)
+for obj in bpy.data.objects:
+    if not any(p in obj.name for p in protected):
+        bpy.data.objects.remove(obj, do_unlink=True)
 
-# Find and sort all Files
-files = sorted([f for f in os.listdir(path_to_glb) if f.endswith(extension)])
+# 2. Setup Trajectory Controller (Empty Object)
+# This allows moving the whole animation as one block
+if "TRAJECTORY_CONTROL" not in bpy.data.objects:
+    cntrl = bpy.data.objects.new("TRAJECTORY_CONTROL", None)
+    bpy.context.collection.objects.link(cntrl)
+else:
+    cntrl = bpy.data.objects["TRAJECTORY_CONTROL"]
 
-for i, filename in enumerate(files):
+# 3. File Discovery and Sorting
+files = sorted([f for f in os.listdir(path_to_glb) if f.endswith(".glb")])
+# Separate the static scalebar from the animated frames
+frame_files = [f for f in files if "scalebar" not in f]
+scalebar_file = next((f for f in files if "scalebar" in f), None)
+
+# 4. Import and Animate Frames
+for i, filename in enumerate(frame_files):
     filepath = os.path.join(path_to_glb, filename)
-    
-    # 2. IMPORT (imported objects are automatically selected)
     bpy.ops.import_scene.gltf(filepath=filepath)
     imported_objs = bpy.context.selected_objects
     
-    current_frame = i + 1 # Blender starts with Frame 1
+    # Frames in Blender are 1-based
+    current_frame = i + 1 
 
     for obj in imported_objs:
-        # --- Set KEYFRAMES ---
-        
-        # A) Predecessor Frame: invisible
-        if current_frame > 1:
-            obj.hide_viewport = True
-            obj.hide_render = True
-            obj.keyframe_insert(data_path="hide_viewport", frame=current_frame - 1)
-            obj.keyframe_insert(data_path="hide_render", frame=current_frame - 1)
-        
-        # B) Current Frame: visible
-        obj.hide_viewport = False
-        obj.hide_render = False
-        obj.keyframe_insert(data_path="hide_viewport", frame=current_frame)
-        obj.keyframe_insert(data_path="hide_render", frame=current_frame)
-        
-        # C) Successor Frame: invisible
-        obj.hide_viewport = True
-        obj.hide_render = True
-        obj.keyframe_insert(data_path="hide_viewport", frame=current_frame + 1)
-        obj.keyframe_insert(data_path="hide_render", frame=current_frame + 1)
+        # Link to controller for easy positioning
+        obj.parent = cntrl
 
-# Adapt Timeline
-bpy.context.scene.frame_end = len(files)
-print(f"Finished! {{len(files)}} Frames processed.")
+        # --- Master Material Linking Logic ---
+        # Mapping prefixes to Master Materials
+        target_material = None
+        
+        if obj.name.startswith("mol_"):
+            target_material = "MASTER_Molecule"
+        elif obj.name.startswith("orb_pos"):
+            target_material = "MASTER_Orb_Pos"
+        elif obj.name.startswith("orb_neg"):
+            target_material = "MASTER_Orb_Neg"
+        elif obj.name.startswith("spin_pos"):
+            target_material = "MASTER_Spin_Pos"
+        elif obj.name.startswith("spin_neg"):
+            target_material = "MASTER_Spin_Neg"
+        elif obj.name.startswith("esp_") or obj.name.startswith("spin-m_"):
+            target_material = "MASTER_Surface_Mapped"
+
+        if target_material:
+            master_mat = bpy.data.materials.get(target_material)
+            if master_mat:
+                # Assign the master material to the mesh
+                if obj.data.materials:
+                    obj.data.materials[0] = master_mat
+                else:
+                    obj.data.materials.append(master_mat)
+        
+        # Visibility via Scale: Frame before -> Invisible
+        obj.scale = (0, 0, 0)
+        obj.keyframe_insert(data_path="scale", frame=current_frame - 1)
+        
+        # Visibility via Scale: Target frame -> Visible
+        obj.scale = (1, 1, 1)
+        obj.keyframe_insert(data_path="scale", frame=current_frame)
+        
+        # Visibility via Scale: Frame after -> Invisible
+        obj.scale = (0, 0, 0)
+        obj.keyframe_insert(data_path="scale", frame=current_frame + 1)
+        
+        # Ensure 'CONSTANT' interpolation (no scaling/zoom effect between frames)
+        if obj.animation_data and obj.animation_data.action:
+            for fc in obj.animation_data.action.fcurves:
+                for kp in fc.keyframe_points:
+                    kp.interpolation = 'CONSTANT'
+
+# 5. Import Static Scalebar (if exists)
+if scalebar_file:
+    bpy.ops.import_scene.gltf(filepath=os.path.join(path_to_glb, scalebar_file))
+    for obj in bpy.context.selected_objects:
+        # Scalebar also follows the controller
+        obj.parent = cntrl 
+    
+    # 6. Setup Emission Materials for Scalebar
+    for mat in bpy.data.materials:
+        if "emit" in mat.name.lower():
+            nodes = mat.node_tree.nodes
+            principled = nodes.get("Principled BSDF")
+            if principled:
+                # Set Emission to white/color and boost strength
+                # For the bar (vertex colors), we link the color to emission
+                if "scale_bar" in mat.name:
+                    mat.node_tree.links.new(principled.inputs['Emission Color'], principled.inputs['Base Color'])
+                else:
+                    principled.inputs['Emission Color'].default_value = (1, 1, 1, 1) # White for labels
+                
+                principled.inputs['Emission Strength'].default_value = 5.0 # Brightness boost
+
+
+# Finalize Timeline Settings
+bpy.context.scene.frame_start = 1
+bpy.context.scene.frame_end = len(frame_files)
+bpy.context.scene.frame_set(1)
+
+print(f"Setup finished: {{len(frame_files)}} frames and scalebar loaded.")
 """
-
     with open(script_path, "w") as f:
         f.write(blender_script)
+    print(f"Setup and Animate Script for Blender Multi File Export written to:")
+    print(f"{script_path}")
+
+def generate_blender_script_one(path):
+    """
+    Generates a companion Blender Python script for the 'one-file' GLB.
+    Handles master materials, static scalebars, and frame-by-frame visibility.
+    """
+    script_path = os.path.splitext(path)[0] + "_setup.py"
+    
+    blender_script = f"""# created with BatchMol by (C) 2026 Dr. Tobias Schulz
+import bpy, re
+# ==============================================================================
+# USER GUIDE for MolVista Blender Animation
+# ==============================================================================
+# 1. GLOBAL VISUAL CONTROL: 
+#    This script links all imported meshes to "MASTER" materials in your template.
+#    Edit these materials in the 'Material Properties' tab to update ALL frames:
+#    - 'MASTER_Molecule'  -> Controls atoms and bonds (mol_***)
+#    - 'MASTER_Orb_Pos'   -> Controls positive lobes (orb_pos_***, spin_pos_***)
+#    - 'MASTER_Orb_Neg'   -> Controls negative lobes (orb_neg_***, spin_neg_***)
+#    - 'MASTER_Surface'   -> Controls mapped surfaces (esp_***, spin-m_***)
+#
+# 2. RETAINING COLORS (CPK & ESP-Mapping):
+#    'MASTER_Molecule' and 'MASTER_Surface' use 'Vertex Colors' (Color Attributes).
+#    In the Shader Editor, ensure a 'Color Attribute' node is connected to the 
+#    'Base Color' and 'Emission Color' of the Principled BSDF.
+#
+# 3. POSITIONING:
+#    Select the 'TRAJECTORY_CONTROL' (Empty) to move, rotate, or scale the 
+#    entire animation sequence simultaneously over your water/scene.
+#
+# 4. SCALEBAR:
+#    The static scalebar objects (lbl_***, scale_bar) are also linked to the 
+#    controller but stay visible throughout the entire timeline.
+# ==============================================================================
+
+# --- Configuration ---
+# Match objects with an index like _001, _002 at the end
+frame_pattern = re.compile(r'.*_\\d+$')
+
+# Template protection
+protected = ["Camera", "Plane", "Cylinder", "Sun", "World", "TRAJECTORY_CONTROL", "DUMMY"]
+
+# Master Material Mapping
+mat_map = {{
+    "mol_": "MASTER_Molecule",
+    "orb_pos": "MASTER_Orb_Pos",
+    "orb_neg": "MASTER_Orb_Neg",
+    "spin_pos": "MASTER_Orb_Pos",
+    "spin_neg": "MASTER_Orb_Neg",
+    "esp_": "MASTER_Surface",
+    "spin-m": "MASTER_Surface"
+}}
+
+# 1. Clean-up (Protect template and master dummies)
+for obj in bpy.data.objects:
+    is_protected = any(p in obj.name for p in protected)
+    if not is_protected and not frame_pattern.match(obj.name) and "_static" not in obj.name:
+        bpy.data.objects.remove(obj, do_unlink=True)
+
+# 2. Controller Setup
+if "TRAJECTORY_CONTROL" not in bpy.data.objects:
+    cntrl = bpy.data.objects.new("TRAJECTORY_CONTROL", None)
+    bpy.context.collection.objects.link(cntrl)
+else:
+    cntrl = bpy.data.objects["TRAJECTORY_CONTROL"]
+
+# 3. Process Objects: Linking Materials and Grouping Frames
+frames = {{}}
+for obj in bpy.data.objects:
+    # A) Skip protected template objects
+    if any(p in obj.name for p in protected) and "DUMMY" not in obj.name:
+        continue
+    
+    # B) Link to Master Materials
+    for prefix, master_name in mat_map.items():
+        if prefix in obj.name.lower():
+            master_mat = bpy.data.materials.get(master_name)
+            if master_mat:
+                obj.data.materials.clear()
+                obj.data.materials.append(master_mat)
+    
+    # C) Static Scalebar handling (no animation)
+    if "_static" in obj.name:
+        obj.parent = cntrl
+        # Optional: Boost emission for scalebar
+        if "emit" in obj.name.lower():
+            for mat in obj.data.materials:
+                if mat.node_tree:
+                    nodes = mat.node_tree.nodes
+                    p = nodes.get("Principled BSDF")
+                    if p: p.inputs['Emission Strength'].default_value = 5.0
+        continue
+
+    # D) Frame Animation Grouping
+    match = frame_pattern.match(obj.name)
+    if match:
+        idx = int(match.group(1))
+        if idx not in frames: frames[idx] = []
+        frames[idx].append(obj)
+
+# 4. Create Sequence Animation (Scale-Toggle)
+for idx, objs in frames.items():
+    target_frame = idx
+    for obj in objs:
+        obj.parent = cntrl
+        
+        # Frame before: Hidden
+        obj.scale = (0, 0, 0)
+        obj.keyframe_insert(data_path="scale", frame=target_frame - 1)
+        
+        # Current Frame: Visible
+        obj.scale = (1, 1, 1)
+        obj.keyframe_insert(data_path="scale", frame=target_frame)
+        
+        # Frame after: Hidden
+        obj.scale = (0, 0, 0)
+        obj.keyframe_insert(data_path="scale", frame=target_frame + 1)
+        
+        # Constant Interpolation (instant switch)
+        if obj.animation_data and obj.animation_data.action:
+            for fc in obj.animation_data.action.fcurves:
+                for kp in fc.keyframe_points: kp.interpolation = 'CONSTANT'
+
+# 5. Scene Finalization
+if frames:
+    bpy.context.scene.frame_start = 1
+    bpy.context.scene.frame_end = max(frames.keys())
+    bpy.context.scene.frame_set(1)
+
+print(f"Setup Complete: {{len(frames)}} frames sequenced and parented to TRAJECTORY_CONTROL.")
+"""
+    with open(script_path, "w") as f:
+        f.write(blender_script)
+    print(f"Setup and Animate Script for Blender One File Export written to:")
+    print(f"{script_path}")
 
 cpk_colors = defaultdict(lambda: "magenta")
 cpk_colors.update({
@@ -1018,7 +1254,7 @@ cpk_colors.update({
             29: "chocolate",   # Cu (Kupfer)
             40: "cadetblue",   # Zr (Zirconium)
             44: "teal",        # Ru (Ruthenium)
-            45: "deeppink",    # Rh (Rhodium) - oft zur Unterscheidung kräftig
+            45: "deeppink",    # Rh (Rhodium) 
             78: "lightgrey",    # Pt (Platin)
             35: "darkred",   #Br
             53: "darkviolet" # I
@@ -1050,7 +1286,7 @@ cov_radii = {
 default_radius = 1.0
 
 # current Version !!!!
-ver_no = "4.2"
+ver_no = "4.3"
 # new:
 # - corrected ESP and Spin Density
 # - adaptive parallelized mode for ESP calculation
@@ -1067,11 +1303,11 @@ ver_no = "4.2"
                 help='output file, default output.inc/.glb') # "scan.inc"
 @click.option('--obj_name', '-n', default='molecule',
               help='object name in output.inc, default "molecule" ') #scan
-@click.option('--iso_level', '-l', type=float, default=0.02,
-              help='iso level, default 0.02')
+@click.option('--iso_level', '-l', type=float,
+              help='iso level, default 0.02 (orbitals), 0.002 (iso-surface)')
 @click.option('--n_pts', nargs = 3, type=int, default=(50,50,50),
               help='number of grid points, default 50 50 50')
-@click.option('--padding', type=int, default=4,
+@click.option('--padding', type=float, default=4,
               help='padding for grid calculation, default 4')
 @click.option('--type', '-p', default='esp',
               help='execution mode "mo", "esp", "spin", "spin-m", default "esp" ')
@@ -1084,7 +1320,7 @@ ver_no = "4.2"
 @click.option('--v_max', '-v', type=float, default=None,
               help='limit for scalebar, v_min=-v_max, default +/-0.15 ESP, +/-1 Spin')
 @click.option('--o_mode', '-M', default="pov",
-              help='output mode "pov": POV-Ray *.inc (default), "bld": Blender *.glb')
+              help='output mode "pov": POV-Ray *.inc (default), "bld": Blender Multi *.glb, "bld-one": Blender OneFile *.glb')
 
 def main(files,o_file,obj_name,iso_level, n_pts, padding, type,cmap,orb_index,spin,v_max,o_mode):
     if not files:
@@ -1095,16 +1331,23 @@ def main(files,o_file,obj_name,iso_level, n_pts, padding, type,cmap,orb_index,sp
     i_files=files
     length=len(i_files)
 
-    print(type)
     if v_max is None:
         if type == "spin-m":
             v_max = 1.0
-            print("Notice: No v_max provided. Using 1.0 for Spin-Mapping.")
+            print(f"Notice: No v_max provided. Using {v_max} for Spin-Mapping.")
         elif type == "esp": 
             v_max = 0.15
-            print("Notice: No v_max provided. Using 0.15 for ESP-Mapping.")
-    if v_max is not None:
-        v_min=-v_max
+            print(f"Notice: No v_max provided. Using {v_max} for ESP-Mapping.")
+    v_min = -v_max if v_max is not None else None
+    
+    if iso_level is None:
+        if type in ["spin-m", "esp"]:
+            iso_level = 0.002
+            print(f"Notice: No iso_level provided. Using {iso_level} for Iso-Surface.")
+        elif type in ["mo", "spin"]: 
+            iso_level = 0.02
+            print(f"Notice: No iso_level provided. Using {iso_level} for Orbitals.")
+
     #grid variables
     nx, ny, nz = n_pts
     padding = padding
@@ -1203,7 +1446,14 @@ def main(files,o_file,obj_name,iso_level, n_pts, padding, type,cmap,orb_index,sp
                                     filename=o_file, idx=i)
                         export_pov_esp(ESP_mesh, filename=o_file,object_name=obj_name, 
                                     cmap_name=cmap, clim=[v_min,v_max],idx=i) 
+            print(f"\nDone! POV-Ray *.inc File written to {o_file}.glb")
     elif o_mode == "bld":
+        if type in ["esp", "spin-m"]:
+            cb_pl = pv.Plotter()
+            cb_group = create_3d_colorbar_group(v_min, v_max, type, cmap)
+            for mesh, base_name, kwargs in cb_group:
+                cb_pl.add_mesh(mesh, name=base_name, **kwargs)
+            cb_pl.export_gltf(f"{o_file}_scalebar.glb")
         if i_files:
             p_bar = tqdm(i_files)
             old_mo_coeffs = None
@@ -1245,12 +1495,6 @@ def main(files,o_file,obj_name,iso_level, n_pts, padding, type,cmap,orb_index,sp
                         }
                         pl.add_mesh(name=f"esp_{i:03d}",**mesh_args)
 
-                        #cb_group = create_3d_colorbar_group(v_min, v_max, type, cmap)
-                        #for mesh, base_name, kwargs in cb_group:
-                        # unique identifier in Blender: cbar_001, lbl_min_001, etc.
-                        #    unique_name = f"{base_name}_{i:03d}"
-                        #    pl.add_mesh(mesh, name=unique_name, **kwargs)
-
                     case "spin":
                         mesh1, mesh2 = draw_spin(new_data,iso_val=iso_level,nx=nx,ny=ny,nz=nz,padding=padding)
                         pl.add_mesh(mesh1, name=f"spin_pos_{i:03d}", color=color_pos)
@@ -1267,17 +1511,78 @@ def main(files,o_file,obj_name,iso_level, n_pts, padding, type,cmap,orb_index,sp
                             "smooth_shading":True
                             }
                         pl.add_mesh(name=f"spin-m_{i:03d}", **mesh_args)  
-
-                        #cb_group = create_3d_colorbar_group(v_min, v_max, type, cmap)
-                        #for mesh, base_name, kwargs in cb_group:
-                        # unique identifier in Blender: cbar_001, lbl_min_001, etc.
-                        #    unique_name = f"{base_name}_{i:03d}"
-                        #    pl.add_mesh(mesh, name=unique_name, **kwargs)
-                
+             
                 pl.export_gltf(f"{o_file}_{i:03d}.glb")
+            print(f"\nDone! Multi-file GLB written to {o_file}_*.glb")
             generate_blender_script(o_file)
+            #
+    elif o_mode == "bld-one":
+        if i_files:
+            pl = pv.Plotter(off_screen=True) # one plotter for all frames
+            p_bar = tqdm(i_files)
+            old_mo_coeffs = None
+            
+            for i, name in enumerate(p_bar, start=1):
+                p_bar.set_description(f"Batch-Processing {name}")
+                new_data = MoleculeData.from_molden(name)
+                
+                # 1. MOLECULE
+                comb_mesh = draw_mol(new_data.atom_points, new_data.atom_types, cpk_colors)
+                # Name: mol_001, mol_002... (important for Master-Logic)
+                pl.add_mesh(comb_mesh, name=f"mol_{i:03d}", scalars="RGB", rgb=True, smooth_shading=True)
+
+                # 2. ADDITIONAL MESHES (Orbitals, ESP, etc.)
+                match type:
+                    case "mo":
+                        # Phase-Correction for Orbitals
+                        if old_mo_coeffs is not None:
+                            if isinstance(new_data.mo_coeff, (list, tuple)):
+                                fix_orbital_phase(new_data.mo_coeff[spin], old_mo_coeffs[spin])
+                            else:
+                                if new_data.mo_coeff.shape == old_mo_coeffs.shape:
+                                    fix_orbital_phase(new_data.mo_coeff, old_mo_coeffs)
+                        old_mo_coeffs = np.copy(new_data.mo_coeff)
+                        
+                        m1, m2 = mo_batch(new_data, orb_index=orb_index, spin_idx=spin, 
+                                          iso_level=iso_level, nx=nx, ny=ny, nz=nz, padding=padding)
+                        pl.add_mesh(m1, name=f"orb_pos_{i:03d}", color=color_pos)
+                        pl.add_mesh(m2, name=f"orb_neg_{i:03d}", color=color_neg)
+
+                    case "esp":
+                        esp_mesh, active_scalar = draw_esp_molden(new_data, iso_val=iso_level,
+                                                                 nx=nx, ny=ny, nz=nz, padding=padding)
+                        pl.add_mesh(esp_mesh, name=f"esp_{i:03d}", scalars=active_scalar, 
+                                    cmap=cmap, clim=[v_min, v_max], opacity=trans)
+
+                    case "spin":
+                        m1, m2 = draw_spin(new_data, iso_val=iso_level, nx=nx, ny=ny, nz=nz, padding=padding)
+                        pl.add_mesh(m1, name=f"spin_pos_{i:03d}", color=color_pos)
+                        pl.add_mesh(m2, name=f"spin_neg_{i:03d}", color=color_neg)
+
+                    case "spin-m":
+                        sm_mesh, active_scalar = draw_spin_mapped(new_data, iso_val=iso_level, 
+                                                                 nx=nx, ny=ny, nz=nz, padding=padding)
+                        pl.add_mesh(sm_mesh, name=f"spin-m_{i:03d}", scalars=active_scalar, 
+                                    cmap=cmap, clim=[v_min, v_max], opacity=trans)
+
+            # 3. SCALEBAR 
+            if type in ["esp", "spin-m"]:
+                cb_group = create_3d_colorbar_group(v_min, v_max, type, cmap)
+                for mesh, base_name, kwargs in cb_group:
+                    # Name ohne Index-Suffix, damit es statisch bleibt
+                    pl.add_mesh(mesh, name=f"{base_name}_static", **kwargs)
+
+            # 4. EXPORT
+            output_path = f"{o_file}_all_frames.glb"
+            pl.export_gltf(output_path)
+            pl.close()
+            print(f"\nDone! One-file GLB written to {output_path}")
+
+            # 5. SCRIPT GENERATION
+            generate_blender_script(output_path) 
+            
     else:
-        print(f"invalid output mode: '{o_mode}', enter 'pov' or 'bld' ")
+        print(f"invalid output mode: '{o_mode}', enter 'pov', 'bld' or 'bld-one' ")
 
 if __name__ == '__main__':
     # filter for -B Flag directly from sys.argv, 
