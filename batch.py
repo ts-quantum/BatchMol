@@ -921,8 +921,8 @@ def create_3d_colorbar_group(v_min, v_max, mode="esp", cmap_name="rainbow", heig
 
     # 2. Labels (Smaller text)
     label_args = {"color": "white", "smooth_shading": True}
-    text_scale = 0.12  # Reduced from 0.25
-    text_depth = 0.02
+    text_scale = 0.06  # Reduced from 0.25
+    text_depth = 0.01
     
     # v_min Label (bottom)
     txt_min = pv.Text3D(f"{v_min:.2f}", depth=text_depth)
@@ -940,13 +940,13 @@ def create_3d_colorbar_group(v_min, v_max, mode="esp", cmap_name="rainbow", heig
     # Title (above)
     title_str = "ESP [a.u.]" if mode == "esp" else "Spin [a.u.]"
     txt_title = pv.Text3D(title_str, depth=text_depth)
-    txt_title.scale(text_scale * 1.2)
+    txt_title.scale(text_scale * 1)
     txt_title.translate([3.4, height/2 + 0.2, 0])
     visuals.append((txt_title, "lbl_title_emit", label_args))
     
     return visuals
 
-### BLENDER Script #####
+### BLENDER Script (Orbitals) #####
 def generate_blender_script(path):
     """
     Generates a companion Blender Python script for Multi-File GLB export.
@@ -956,11 +956,31 @@ def generate_blender_script(path):
     script_path = os.path.splitext(path)[0] + "_setup.py"
     current_path = os.getcwd().replace("\\", "/") 
     
-    blender_script = f"""# created with BatchMol {ver_no} (Multi-File Orbitals Frozen)
+    blender_script = f"""# created with BatchMol {ver_no} (C) 2026 by Dr. Tobias Schulz
 # ==============================================================================
-# USER GUIDE: 
-# 1. RUN THIS SCRIPT
-# 2. CLEANUP: Search 'Renderer Node' in Outliner -> Select all (A) 
+# USER GUIDE for BatchMol Blender Animation (Multi File Mode)
+# ==============================================================================
+# (A) Run this Script within Blender
+#
+# 1. GLOBAL VISUAL CONTROL: 
+#    This script links all imported meshes to "MASTER" materials in your template.
+#    Edit these materials in the 'Material Properties' tab to update ALL frames:
+#    - 'MASTER_Molecule'  -> Controls atoms and bonds (mol_***)
+#    - 'MASTER_Orb_Pos'   -> Controls positive lobes (orb_pos_***, spin_pos_***)
+#    - 'MASTER_Orb_Neg'   -> Controls negative lobes (orb_neg_***, spin_neg_***)
+#
+# 2. RETAINING COLORS (CPK):
+#    'MASTER_Molecule' uses 'Vertex Colors' (Color Attributes).
+#    In the Shader Editor, ensure a 'Color Attribute' node is connected to the 
+#    'Base Color' and 'Emission Color' of the Principled BSDF.
+#
+# 3. POSITIONING:
+#    Select the 'TRAJECTORY_CONTROL' (Empty) to move, rotate, or scale the 
+#    entire animation sequence simultaneously over your scene.
+#
+# (B) CLEANUP
+#    Manual cleanup of empty objects neccessary
+#    Search for e.g. 'Camera Node***' in Outliner -> Select all (A) 
 #    -> Right Click -> 'Delete Hierarchy'. This removes Cameras but keeps Meshes.
 # ==============================================================================
 
@@ -993,7 +1013,7 @@ for i, filename in enumerate(frame_files):
     
     current_frame = i + 1 
 
-    # We only care about Meshes for materials and animation
+    # Only care about Meshes for materials and animation
     meshes_in_file = [o for o in new_objs if o.type == 'MESH']
     
     for slot_idx, obj in enumerate(meshes_in_file):
@@ -1048,7 +1068,29 @@ print(f"Multi-File Sync finished: {{len(frame_files)}} frames ready.")
 
 def generate_blender_script_one(path):
     script_path = os.path.splitext(path)[0] + "_setup.py"
-    blender_script = f"""# created with BatchMol {ver_no} (One-File Orbitals Frozen)
+    blender_script = f"""# created with BatchMol {ver_no} (C) 2026 by Dr. Tobias Schulz
+# ==============================================================================
+# USER GUIDE for BatchMol Blender Animation (One File Mode)
+# ==============================================================================
+# (A) Run this Script within Blender
+#
+# 1. GLOBAL VISUAL CONTROL: 
+#    This script links all imported meshes to "MASTER" materials in your template.
+#    Edit these materials in the 'Material Properties' tab to update ALL frames:
+#    - 'MASTER_Molecule'  -> Controls atoms and bonds (mol_***)
+#    - 'MASTER_Orb_Pos'   -> Controls positive lobes (orb_pos_***, spin_pos_***)
+#    - 'MASTER_Orb_Neg'   -> Controls negative lobes (orb_neg_***, spin_neg_***)
+#
+# 2. RETAINING COLORS (CPK):
+#    'MASTER_Molecule' uses 'Vertex Colors' (Color Attributes).
+#    In the Shader Editor, ensure a 'Color Attribute' node is connected to the 
+#    'Base Color' and 'Emission Color' of the Principled BSDF.
+#
+# 3. POSITIONING:
+#    Select the 'TRAJECTORY_CONTROL' (Empty) to move, rotate, or scale the 
+#    entire animation sequence simultaneously over your scene.
+# ==============================================================================
+
 import bpy, re, os
 
 # --- Helper: Natural Sort (mesh_2 comes before mesh_10) ---
@@ -1069,7 +1111,7 @@ if not container:
 else:
     all_objs = [child for child in container.children if child.type == 'MESH']
 
-# HIER PASSIERT DIE MAGIE: Wir zwingen Blender in die richtige Reihenfolge
+# force correct order
 all_objs.sort(key=lambda o: natural_key(o.name))
 
 # 3. Processing Slots
@@ -1123,7 +1165,39 @@ def generate_blender_script_esp_multi(path):
     script_path = os.path.splitext(path)[0] + "_setup.py"
     current_path = os.getcwd().replace("\\", "/") 
     
-    blender_script = f"""# created with BatchMol {ver_no} (ESP Multi-File Fix)
+    blender_script = f"""# created with BatchMol {ver_no} (C) 2026 by Dr. Tobias Schulz
+# ==============================================================================
+# USER GUIDE for BatchMol Blender Animation (Multi File Mode)
+# ==============================================================================
+# Note: before running this script: adapt "Metallic", "Alpha", "Roughness" and
+#       "Emission" in Section 3 (B) under "if bsdf..." to your liking
+# 
+# (A) Run this Script within Blender
+#
+# 1. GLOBAL VISUAL CONTROL: 
+#    This script links all imported meshes to "MASTER" materials in your template.
+#    Edit these materials in the 'Material Properties' tab to update ALL frames:
+#    - 'MASTER_Molecule'  -> Controls atoms and bonds (mol_***)
+#
+# 2. RETAINING COLORS (CPK):
+#    'MASTER_Molecule' uses 'Vertex Colors' (Color Attributes).
+#    In the Shader Editor, ensure a 'Color Attribute' node is connected to the 
+#    'Base Color' and 'Emission Color' of the Principled BSDF.
+#
+# 3. POSITIONING:
+#    Select the 'TRAJECTORY_CONTROL' (Empty) to move, rotate, or scale the 
+#    entire animation sequence simultaneously over your scene.
+#
+# 4. SCALEBAR:
+#    Must be imported separately! Look for "*_scalebar.glb", position and scale
+#    according to your needs
+#
+# (B) CLEANUP
+#    Manual cleanup of empty objects neccessary
+#    Search for e.g. 'Camera Node***' in Outliner -> Select all (A) 
+#    -> Right Click -> 'Delete Hierarchy'. This removes Cameras but keeps Meshes.
+# ==============================================================================
+
 import bpy, os, re
 
 path_to_glb = "{current_path}"
@@ -1144,7 +1218,7 @@ for i, filename in enumerate(files):
     filepath = os.path.join(path_to_glb, filename)
     bpy.ops.import_scene.gltf(filepath=filepath)
     
-    # WICHTIG: Wir sortieren die Objekte INNERHALB der Datei (0=Mol, 1=Surf)
+    # Sorting of objects within file (0=Mol, 1=Surf)
     new_objs = [o for o in bpy.context.selected_objects if o.type == 'MESH']
     new_objs.sort(key=lambda o: [int(c) if c.isdigit() else c.lower() for c in re.split('(\\\\d+)', o.name)])
     
@@ -1156,7 +1230,7 @@ for i, filename in enumerate(files):
         obj.parent = cntrl
         obj.matrix_world = old_matrix
 
-        # --- B) MATERIAL LOGIC (Slot-Zuweisung innerhalb des Frames) ---
+        # --- B) MATERIAL LOGIC (Slot assignment within frames) ---
         if slot_idx == 0:
             # Molecule -> Link to MASTER_Molecule
             mat = bpy.data.materials.get("MASTER_Molecule")
@@ -1203,7 +1277,7 @@ for i, filename in enumerate(files):
                 for fc in obj.animation_data.action.fcurves:
                     for kp in fc.keyframe_points: kp.interpolation = 'CONSTANT'
     
-    # Cleanup Junk Nodes (nur Empties/Nodes löschen)
+    # Cleanup Junk Nodes (delete only empty nodes)
     for o in bpy.context.selected_objects:
         if o.type != 'MESH':
             bpy.data.objects.remove(o, do_unlink=True)
@@ -1217,14 +1291,36 @@ bpy.context.scene.frame_set(1)
         f.write(blender_script)
 
 def generate_blender_script_esp_one(path):
-    """
-    Kombiniert das Beste aus zwei Welten:
-    - Stabilität & Sorting der One-File Orbital-Routine
-    - Material-Veredelung (Alpha, Metallic, Glow) für die ESP-Fläche
-    """
     script_path = os.path.splitext(path)[0] + "_setup.py"
     
-    blender_script = f"""# created with BatchMol {ver_no} (One-File ESP Hybrid Pro)
+    blender_script = f"""# created with BatchMol {ver_no} (C) 2026 by Dr. Tobias Schulz
+# ==============================================================================
+# USER GUIDE for BatchMol Blender Animation (One File Mode)
+# ==============================================================================
+# Note: before running this script: adapt "Metallic", "Alpha", "Roughness" and
+#       "Emission" in Section 3 (B) under "if bsdf..." to your liking
+# 
+# (A) Run this Script within Blender
+#
+# 1. GLOBAL VISUAL CONTROL: 
+#    This script links all imported meshes to "MASTER" materials in your template.
+#    Edit these materials in the 'Material Properties' tab to update ALL frames:
+#    - 'MASTER_Molecule'  -> Controls atoms and bonds (mol_***)
+#
+# 2. RETAINING COLORS (CPK):
+#    'MASTER_Molecule' uses 'Vertex Colors' (Color Attributes).
+#    In the Shader Editor, ensure a 'Color Attribute' node is connected to the 
+#    'Base Color' and 'Emission Color' of the Principled BSDF.
+#
+# 3. POSITIONING:
+#    Select the 'TRAJECTORY_CONTROL' (Empty) to move, rotate, or scale the 
+#    entire animation sequence simultaneously over your scene.
+#
+# 4. SCALEBAR:
+#    Must be imported separately! Look for "*_scalebar.glb", position and scale
+#    according to your needs
+# ==============================================================================
+
 import bpy, re, os
 
 def natural_key(text):
@@ -1248,7 +1344,7 @@ else:
 
 all_objs.sort(key=lambda o: natural_key(o.name))
 
-# 3. Processing Slots (0=Mol, 1=D, 2=D, 3=Surf)
+# 3. Processing Slots (0=Mol, 1=Surf)
 slots_per_frame = 2
 for i, obj in enumerate(all_objs):
     frame_idx = (i // slots_per_frame) + 1
@@ -1256,7 +1352,7 @@ for i, obj in enumerate(all_objs):
     
     obj.parent = cntrl
     
-    # --- Material-Logik (Hybrid Pro) ---
+    # --- Material-Logic (Hybrid Pro) ---
     if slot_idx == 0:
         # Molecule -> Link to MASTER_Molecule
         mat = bpy.data.materials.get("MASTER_Molecule")
@@ -1319,8 +1415,6 @@ print(f"Hybrid ESP Setup complete. Alpha and Emission applied to {{len(all_objs)
 """
     with open(script_path, "w") as f:
         f.write(blender_script)
-
-
 
 cpk_colors = defaultdict(lambda: "magenta")
 cpk_colors.update({
@@ -1637,9 +1731,6 @@ def main(files,o_file,obj_name,iso_level, n_pts, padding, type,cmap,orb_index,sp
                 pl.add_mesh(comb_mesh, name=f"mol_{i:03d}", label="MAT_MOLECULE", scalars="RGB", rgb=True, smooth_shading=True)
 
                 # 2. ADDITIONAL MESHES (Orbitals, ESP, etc.)
-                # each export uses the same structure: mol, orb_pos, orb_neg, surface
-                # to allow for MASTER_Object assignment in Blender
-                # e.g. for "mo" surface is empty
                 match type:
                     case "mo":
                         # Phase-Correction for Orbitals

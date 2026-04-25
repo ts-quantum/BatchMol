@@ -921,8 +921,8 @@ def create_3d_colorbar_group(v_min, v_max, mode="esp", cmap_name="rainbow", heig
 
     # 2. Labels (Smaller text)
     label_args = {"color": "white", "smooth_shading": True}
-    text_scale = 0.12  # Reduced from 0.25
-    text_depth = 0.02
+    text_scale = 0.06  # Reduced from 0.25
+    text_depth = 0.01
     
     # v_min Label (bottom)
     txt_min = pv.Text3D(f"{v_min:.2f}", depth=text_depth)
@@ -940,7 +940,7 @@ def create_3d_colorbar_group(v_min, v_max, mode="esp", cmap_name="rainbow", heig
     # Title (above)
     title_str = "ESP [a.u.]" if mode == "esp" else "Spin [a.u.]"
     txt_title = pv.Text3D(title_str, depth=text_depth)
-    txt_title.scale(text_scale * 1.2)
+    txt_title.scale(text_scale * 1)
     txt_title.translate([3.4, height/2 + 0.2, 0])
     visuals.append((txt_title, "lbl_title_emit", label_args))
     
