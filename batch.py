@@ -12,24 +12,34 @@ if not os.path.exists(mpl_cache_dir):
 # set env var Mpl_CONFIGDIR 
 os.environ['MPLCONFIGDIR'] = mpl_cache_dir
 
+import pyvista as pv
+import platform
+if platform.system() != "Darwin":
+    os.environ.update({
+    'MESA_DEBUG': 'silent',
+    'LIBGL_DEBUG': 'quiet',
+    'EGL_LOG_LEVEL': 'fatal',
+    'VTK_SILENT': '1',
+    'QT_QPA_PLATFORM': 'offscreen'
+    })
+    import vtk
+    
+    vtk.vtkObject.GlobalWarningDisplayOff()
+    vtk.vtkLogger.SetStderrVerbosity(vtk.vtkLogger.VERBOSITY_OFF)
+    pv.OFF_SCREEN = True
+    pv.global_theme.allow_empty_mesh = True
+
 import matplotlib.pyplot as plt
 from matplotlib import colormaps
 from contextlib import redirect_stderr
 from tqdm import tqdm # progress bar!!
 import pyscf.tools.molden as molden_tools
 from cclib.io import ccread
-import pyvista as pv
 import psutil 
-import platform,subprocess
+import subprocess
 from pyscf import scf, lib, data, dft, gto 
 from collections import defaultdict
 import click # input during execution
-
-"""
-BUILD - macOS
-python -m nuitka --standalone --macos-create-app-bundle --macos-app-name="BatchMol" --enable-plugin=numpy --enable-plugin=matplotlib --enable-plugin=anti-bloat --nofollow-import-to=pyscf --nofollow-import-to=vtkmodules --no-deployment-flag=excluded-module-usage --no-deployment-flag=self-execution --jobs=8 --output-dir=dist --remove-output batch.py
-
-"""
 
 class MoleculeData: #always call arguments by name! 
                     #no special order "*"
@@ -1555,7 +1565,7 @@ def main(files,o_file,obj_name,iso_level, n_pts, padding, type,cmap,orb_index,sp
         header_mol(o_file) # export atom and bond section
         plotter = pv.Plotter(off_screen=True)
         if i_files:
-            p_bar = tqdm(i_files)
+            p_bar = tqdm(i_files, file=sys.stdout)
             old_mo_coeffs = None
             for i, name in enumerate(p_bar, start=1):
                 p_bar.set_description(f"processing {name}")
@@ -1638,7 +1648,7 @@ def main(files,o_file,obj_name,iso_level, n_pts, padding, type,cmap,orb_index,sp
             cb_pl.export_gltf(f"{o_file}_scalebar.glb")
         #Export
         if i_files:
-            p_bar = tqdm(i_files)
+            p_bar = tqdm(i_files, file=sys.stdout)
             old_mo_coeffs = None
             for i, name in enumerate(p_bar):  # start i=0
                 p_bar.set_description(f"processing {name}")
@@ -1718,7 +1728,7 @@ def main(files,o_file,obj_name,iso_level, n_pts, padding, type,cmap,orb_index,sp
         #Export
         if i_files:
             pl = pv.Plotter(off_screen=True) # one plotter for all frames
-            p_bar = tqdm(i_files)
+            p_bar = tqdm(i_files, file=sys.stdout)
             old_mo_coeffs = None
             
             for i, name in enumerate(p_bar, start=1):
