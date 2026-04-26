@@ -1261,7 +1261,7 @@ for i, filename in enumerate(files):
                 bsdf = nodes.get("Principled BSDF")
                 
                 if bsdf:
-                    bsdf.inputs['Alpha'].default_value = 0.5
+                    bsdf.inputs['Alpha'].default_value = 0.4
                     bsdf.inputs['Metallic'].default_value = 0.3
                     bsdf.inputs['Roughness'].default_value = 0.2
                     
@@ -1271,7 +1271,7 @@ for i, filename in enumerate(files):
                         links.new(source_socket, bsdf.inputs['Emission Color'])
                     
                     if 'Emission Strength' in bsdf.inputs:
-                        bsdf.inputs['Emission Strength'].default_value = 1.5
+                        bsdf.inputs['Emission Strength'].default_value = 0.6
 
         # --- C) ANIMATION ---
         obj.scale = (0, 0, 0)
@@ -1384,7 +1384,7 @@ for i, obj in enumerate(all_objs):
             
             if bsdf:
                 # Adjust properties (Alpha, Metallic, Roughness)
-                bsdf.inputs['Alpha'].default_value = 0.5
+                bsdf.inputs['Alpha'].default_value = 0.4
                 bsdf.inputs['Metallic'].default_value = 0.3
                 bsdf.inputs['Roughness'].default_value = 0.2
                 
@@ -1394,7 +1394,7 @@ for i, obj in enumerate(all_objs):
                     links.new(source_socket, bsdf.inputs['Emission Color'])
                 
                 if 'Emission Strength' in bsdf.inputs:
-                    bsdf.inputs['Emission Strength'].default_value = 1.5
+                    bsdf.inputs['Emission Strength'].default_value = 0.6
 
     # 4. Animation (Visibility via Scale)
     is_dummy = len(obj.data.polygons) == 0
