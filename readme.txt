@@ -1,10 +1,30 @@
 # BatchMol
 
-**BatchMol** is the automated high-performance engine of the suite, designed for the volumetric analysis and visualization of reaction trajectories. It processes sequences of `molden` files to track electronic properties as a reaction unfolds.
+**BatchMol** is the automated high-performance engine of the suite, designed for the volumetric analysis and 
+visualization of reaction trajectories. 
+It processes sequences of `molden` or ´fchk´ files to track electronic properties as a reaction unfolds.
 
 ## Features
-- **Multiple Analysis Modes**: Visualize Molecular Orbitals (MO), Electrostatic Potential (ESP), Spin Density, and Spin Mapping.
-- **High-End Rendering**: Direct export to **POV-Ray (.inc)** and **Blender (.glb)**.
+- **Multiple Analysis Modes**: Visualize Molecular Orbitals (MO), Electrostatic Potential (ESP), 
+Spin Density, and Spin Mapping.
+- **High-End Rendering: 
+  Direct export to POV-Ray (.inc) and Blender (.glb).
+* Blender Export:
+  There are two options for Blender export:
+  - Single File: All mesh objects in one .glb file.
+  - Series: A series of .glb files (ideal for each time step 
+    of an IRC trajectory).
+  Additional outputs for Blender:
+  - Setup Script: A '{o-file}_setup.py' is created to automate 
+    processing within Blender. (see User Guide in the script)
+  - Scalebar: A separate '{o-file}-scalebar.glb' is generated 
+    for ESP and Spin Mapping.
+* POV-Ray Integration:
+  - The .inc file can be imported into POV-Ray using 'obj_name' 
+    as the basename for the array of molecule objects.
+  - Easy Customization: The include file contains a dedicated 
+    configuration section to adapt transparency, colors, and 
+    atom/bond radii.
 - **Dynamic Scaling**: Automated or manual limit handling for scalebars (`v_max`).
 - **Flexible Grid Control**: Full control over grid density (`n_pts`) and spatial padding.
 
@@ -19,15 +39,17 @@ Usage: `python batchmol.py [FILES] [OPTIONS]`
 
 | Option | Short | Default | Description |
 | :--- | :--- | :--- | :--- |
-| `--type` | `-p` | `esp` | Mode: `mo`, `esp`, `spin`, `spin-m` (Spin Mapping) |
-| `--o_mode` | `-m` | `pov` | Output: `pov` (POV-Ray) or `bld` (Blender) |
-| `--iso_level`| `-l` | `0.02` | Iso-surface value |
+| `--o_file` | `-o` | `output.inc/.glb` | Output file name |
+| `--obj_name` | `-n` | `molecule` | Object name in output.inc |
+| `--iso_level`| `-l` | `0.02` / `0.002` | Iso level (orbitals / surfaces) |
 | `--n_pts` | | `50 50 50` | Number of grid points (X Y Z) |
-| `--padding` | | `4` | Grid calculation padding |
-| `--cmap` | `-c` | `rainbow` | Colormap (e.g., `viridis`, `coolwarm`, `RdBu`) |
-| `--orb_index`| `-i` | `0` | Orbital index for MO plots |
-| `--v_max` | `-v` | *auto* | Scalebar limits (± value) |
-| `--o_file` | `-o` | `output` | Base name for output files |
+| `--padding` | | `4` | Padding for grid calculation |
+| `--type` | `-p` | `esp` | Execution mode: mo, esp, spin, spin-m |
+| `--cmap` | `-c` | `rainbow` | Colormap for ESP plot |
+| `--orb_index`| `-i` | `0` | Orbital index for MO plot |
+| `--spin` | `-s` | `0` | Alpha (0) or beta (1) spin |
+| `--v_max` | `-v` | `0.15` / `1` | Scalebar limits (v_min = -v_max) |
+| `--o_mode` | `-M` | `pov` | Mode: pov, bld (Multi), bld-one |
 
 ## Project Structure
 
@@ -77,16 +99,16 @@ Example 1: 1,5-H-Shift (Full Workflow Integration) - HF/6-31G
   # POV-Ray include file
   python3 batch.py ./orca/*.molden -p mo -i 18 -M pov -n homo
   # Blender GLB files
-  python3 batch.py ./orca/*.molden -p mo -i 18 -M bld
-  Electrostatic Potential (ESP) Mapping:
+  python3 batch.py ./orca/*.molden -p mo -i 18 -M bld-one
 
+  Electrostatic Potential (ESP) Mapping:
   # POV-Ray (using HSV colormap and fixed scaling)
   python3 batch.py ./orca/*.molden -p esp -v 0.036 -M pov -c hsv -o ESP -n esp
   # Blender (using HSV colormap and fixed scaling)
-  python3 batch.py ./orca/*.molden -p esp -v 0.036 -M bld -c hsv -o ESP
+  python3 batch.py ./orca/*.molden -p esp -v 0.036 -M bld-one -c hsv -o ESP
 
   4. Final Rendering
-  Blender: Import the generated .glb files using the provided import_and_animate.py script.
+  Blender: Import the generated .glb files using the *_setup.py script.
   POV-Ray: Use the generated .inc files with the provided video.pov and video.ini templates 
   to render the final ray-traced frames.
 

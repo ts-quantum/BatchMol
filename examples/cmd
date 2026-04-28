@@ -1,8 +1,8 @@
 ex1
 python3 ../../../batch.py ../orca/*.molden -p mo -i 18 -M pov -n homo
-python3 ../../../batch.py ../orca/*.molden -p mo -i 18 -M bld
+python3 ../../../batch.py ../orca/*.molden -p mo -i 18 -M bld-one -o homo
 python3 ../../../batch.py ../orca/*.molden -o ESP -n esp -p esp -v 0.036 -M pov -c hsv
-python3 ../../../batch.py ../orca/*.molden -o ESP -p esp -v 0.036 -m bld -c hsv
+python3 ../../../batch.py ../orca/*.molden -o ESP -p esp -v 0.036 -M bld-one -c hsv
 
 ex2
 python3 ../../../batch.py ../orca/*.molden -o SPIN -n spin -p spin-m -v 0.5 -M pov -c turbo
