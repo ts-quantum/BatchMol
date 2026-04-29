@@ -906,7 +906,7 @@ def export_pov_colorbar(filename, cmap_name, clim, type, height=2.0, radius=0.08
         f.write("}\n")
 
 #### BLENDER ColorBar/Scalebar ######
-def create_3d_colorbar_group(v_min, v_max, mode="esp", cmap_name="rainbow", height=1.5, width=0.15):
+def create_3d_colorbar_group(v_min, v_max, mode, cmap_name, height=1.5, width=0.15):
     """
     Creates a compact 3D colorbar. 
     Height reduced from 3.0 to 1.5, width from 0.3 to 0.15.
@@ -1074,7 +1074,6 @@ print(f"Multi-File Sync finished: {{len(frame_files)}} frames ready.")
 """
     with open(script_path, "w") as f:
         f.write(blender_script)
-    print(f"Frozen Multi-File Script written to: {script_path}")
 
 def generate_blender_script_one(path):
     script_path = os.path.splitext(path)[0] + "_setup.py"
@@ -1645,14 +1644,25 @@ def main(files,o_file,obj_name,iso_level, n_pts, padding, type,cmap,orb_index,sp
             cb_group = create_3d_colorbar_group(v_min, v_max, type, cmap)
             for mesh, base_name, kwargs in cb_group:
                 cb_pl.add_mesh(mesh, name=base_name, **kwargs)
-            cb_pl.export_gltf(f"{o_file}_scalebar.glb")
+            try:
+                cb_pl.export_gltf(f"{o_file}_scalebar.glb")
+                print(f"Scalebar written: {o_file}_scalebar.glb")
+            except Exception as e:
+                print(f"Error writing Scalebar: {e}")
         #Export
         if i_files:
             p_bar = tqdm(i_files, file=sys.stdout)
             old_mo_coeffs = None
             for i, name in enumerate(p_bar):  # start i=0
                 p_bar.set_description(f"processing {name}")
-                new_data=MoleculeData.from_molden(name)
+                ext = name.split('.')[-1]
+                if ext == 'molden':
+                    new_data=MoleculeData.from_molden(name)
+                elif ext == 'fchk':
+                    new_data=MoleculeData.from_fchk(name)
+                else: 
+                    print(f"invalid input format: {ext}")
+                    sys.exit(1)
                 pl = pv.Plotter() #!!! 
                 atom_points = new_data.atom_points
                 atom_types = new_data.atom_types
@@ -1724,7 +1734,11 @@ def main(files,o_file,obj_name,iso_level, n_pts, padding, type,cmap,orb_index,sp
             cb_group = create_3d_colorbar_group(v_min, v_max, type, cmap)
             for mesh, base_name, kwargs in cb_group:
                 cb_pl.add_mesh(mesh, name=base_name, **kwargs)
-            cb_pl.export_gltf(f"{o_file}_scalebar.glb")
+            try:
+                cb_pl.export_gltf(f"{o_file}_scalebar.glb")
+                print(f"Scalebar written: {o_file}_scalebar.glb")
+            except Exception as e:
+                print(f"Error writing Scalebar: {e}")
         #Export
         if i_files:
             pl = pv.Plotter(off_screen=True) # one plotter for all frames
@@ -1733,7 +1747,14 @@ def main(files,o_file,obj_name,iso_level, n_pts, padding, type,cmap,orb_index,sp
             
             for i, name in enumerate(p_bar, start=1):
                 p_bar.set_description(f"Batch-Processing {name}")
-                new_data = MoleculeData.from_molden(name)
+                ext = name.split('.')[-1]
+                if ext == 'molden':
+                    new_data=MoleculeData.from_molden(name)
+                elif ext == 'fchk':
+                    new_data=MoleculeData.from_fchk(name)
+                else: 
+                    print(f"invalid input format: {ext}")
+                    sys.exit(1)
                 
                 # 1. MOLECULE
                 comb_mesh = draw_mol(new_data.atom_points, new_data.atom_types, cpk_colors)

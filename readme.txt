@@ -96,19 +96,28 @@ Example 1: 1,5-H-Shift (Full Workflow Integration) - HF/6-31G
   BatchMol is then used to generate four different visualization outputs 
   (POV-Ray and Blender):
   Molecular Orbitals (HOMO):
-  # POV-Ray include file
+  # POV-Ray include file 
   python3 batch.py ./orca/*.molden -p mo -i 18 -M pov -n homo
+  (output, rendering input and final video  in ./ex1/pov-homo)
   # Blender GLB files
   python3 batch.py ./orca/*.molden -p mo -i 18 -M bld-one
+  (output in ./ex1/bld-homo, final video ./ex1/bld-homo.mp4)
 
   Electrostatic Potential (ESP) Mapping:
   # POV-Ray (using HSV colormap and fixed scaling)
   python3 batch.py ./orca/*.molden -p esp -v 0.036 -M pov -c hsv -o ESP -n esp
+  (output, rendering input and final video  in ./ex1/pov-esp)
   # Blender (using HSV colormap and fixed scaling)
   python3 batch.py ./orca/*.molden -p esp -v 0.036 -M bld-one -c hsv -o ESP
+  (output in ./ex1/bld-esp, final video ./ex1/bld-esp.mp4)
 
   4. Final Rendering
-  Blender: Import the generated .glb files using the *_setup.py script.
+  Blender: Open 'movie_template.blend' and import the respective .glb file. 
+  Run the *_setup.py script to initialize the scene. Use the Trajectory_Control 
+  object for positioning and scaling, and fine-tune the appearance via the 
+  Dummy* objects (note: surface properties must be defined in the script before execution). 
+  Finally, import the 'ESP_scalebar.glb' separately and position it in the scene 
+  before rendering the video.
   POV-Ray: Use the generated .inc files with the provided video.pov and video.ini templates 
   to render the final ray-traced frames.
 
@@ -127,7 +136,7 @@ Example 2: Radical Bromination of Propene (First Step) - B3LYP/def2-SVP
   2. Batch Input Generation (Important Step)
   ⚠️ Configuration Required: Before running the split-script, open radical_split.py and adjust 
   the following parameters:
-  DFT Method: Set the appropriate functional (e.g., UM06-2X).
+  DFT Method: Set the appropriate functional (e.g., B3LYP def2-SVP).
   Multiplicity: Ensure it is set correctly for the radical species (e.g., 2 for doublet).
   Then, generate and execute the batch:
   python3 radical_split.py
@@ -135,17 +144,25 @@ Example 2: Radical Bromination of Propene (First Step) - B3LYP/def2-SVP
   ./run_radical_batch.sh  # Generates the required .molden files
 
   3. Volumetric Spin Mapping (BatchMol)
-  We use the turbo colormap to visualize the spin density evolution with a fixed scale to 
+  This example uses the turbo colormap to visualize the spin density evolution with a fixed scale to 
   ensure a smooth animation:
   # POV-Ray include file
   python3 batch.py ./orca/*.molden -o SPIN -n spin -p spin-m -v 0.5 -M pov -c turbo
-
-  # Blender GLB files
+  (output, rendering input and final video  in ./ex2/pov-spin)
+  # Blender GLB files (multi file)
   python3 batch.py ./orca/*.molden -o SPIN -p spin-m -v 0.5 -M bld -c turbo
+  (output in ./ex1/bld-spin, final video ./ex2/bld-spin.mp4)
 
   4. Final Rendering
+  # POV-Ray:
   Use the provided video.pov and video.ini templates to render the POV-Ray frames and combine 
   them into an MP4 video (e.g., via FFmpeg).
+  # Blender:
+  Import all SPIN_*.glb files into movie_template.blend. Adjust surface settings (e.g., Alpha or Emission) 
+  within SPIN_setup.py before running the script. If necessary, delete any redundant 'Renderer Nodes' 
+  in the collection. Use the Trajectory_Control object to adjust the position and the Dummy_mol object 
+  for molecule properties. Finally, import and position the SPIN_scalebar.glb.
+
 [1] F. Neese, "Software update: the ORCA program system — Version 6.0", Wiley Interdiscip. Rev.: Comput. Mol. Sci., 
 15, e70019 (2025). doi: 10.1002/wcms.70019.
 
@@ -178,7 +195,7 @@ J. Chem. Phys., 152, 184108 (2020). doi: 10.1063/5.0006002.
     git clone https://github.com
     cd MolVista
 
-2. Install dependencies
+2. Install dependencies (using a VENV is recommended)
     pip install -r requirements.txt
 
     Requirements
@@ -186,6 +203,8 @@ J. Chem. Phys., 152, 184108 (2020). doi: 10.1063/5.0006002.
         PyVista
         PyScf
         ....
+
+Note: Precompiled executables for macOS, Linux arm64, and Linux x64 are available under 'releases'.
 
 ## Usage
 
