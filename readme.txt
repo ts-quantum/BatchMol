@@ -75,7 +75,7 @@ structure differs from the example setup.
 - **File Permissions**: On Linux/macOS, remember to make the batch script executable: 
 `chmod +x run_h-shift_batch.sh`.
 
-Example 1: 1,5-H-Shift (Full Workflow Integration) - HF/6-31G
+Example 1: 1,5-H-Shift (Full Workflow Integration) - HF/6-31G [1]
 
   This example demonstrates the complete pipeline from a raw IRC trajectory to 
   high-end ESP and MO animations.
@@ -103,7 +103,7 @@ Example 1: 1,5-H-Shift (Full Workflow Integration) - HF/6-31G
   python3 batch.py ./orca/*.molden -p mo -i 18 -M bld-one
   (output in ./ex1/bld-homo, final video ./ex1/bld-homo.mp4)
 
-  Electrostatic Potential (ESP) Mapping:
+  4. Electrostatic Potential (ESP) Mapping:
   # POV-Ray (using HSV colormap and fixed scaling)
   python3 batch.py ./orca/*.molden -p esp -v 0.036 -M pov -c hsv -o ESP -n esp
   (output, rendering input and final video  in ./ex1/pov-esp)
@@ -111,17 +111,17 @@ Example 1: 1,5-H-Shift (Full Workflow Integration) - HF/6-31G
   python3 batch.py ./orca/*.molden -p esp -v 0.036 -M bld-one -c hsv -o ESP
   (output in ./ex1/bld-esp, final video ./ex1/bld-esp.mp4)
 
-  4. Final Rendering
-  Blender: Open 'movie_template.blend' and import the respective .glb file. 
+  5. Final Rendering
+  # Blender [3]: Open 'movie_template.blend' and import the respective .glb file. 
   Run the *_setup.py script to initialize the scene. Use the Trajectory_Control 
   object for positioning and scaling, and fine-tune the appearance via the 
   Dummy* objects (note: surface properties must be defined in the script before execution). 
   Finally, import the 'ESP_scalebar.glb' separately and position it in the scene 
   before rendering the video.
-  POV-Ray: Use the generated .inc files with the provided video.pov and video.ini templates 
-  to render the final ray-traced frames.
+  # POV-Ray [4]: Use the generated .inc files with the provided video.pov and video.ini templates 
+  to render the final ray-traced frames and combine them into an MP4 video (e.g., via FFmpeg [5])
 
-Example 2: Radical Bromination of Propene (First Step) - B3LYP/def2-SVP
+Example 2: Radical Bromination of Propene (First Step) - B3LYP/def2-SVP [1]
 
   This example focuses on the addition of a bromine radical to propene, 
   highlighting the shift of spin density during the C-Br bond formation.
@@ -154,10 +154,10 @@ Example 2: Radical Bromination of Propene (First Step) - B3LYP/def2-SVP
   (output in ./ex1/bld-spin, final video ./ex2/bld-spin.mp4)
 
   4. Final Rendering
-  # POV-Ray:
+  # POV-Ray [4]:
   Use the provided video.pov and video.ini templates to render the POV-Ray frames and combine 
-  them into an MP4 video (e.g., via FFmpeg).
-  # Blender:
+  them into an MP4 video (e.g., via FFmpeg [5]).
+  # Blender [3]:
   Import all SPIN_*.glb files into movie_template.blend. Adjust surface settings (e.g., Alpha or Emission) 
   within SPIN_setup.py before running the script. If necessary, delete any redundant 'Renderer Nodes' 
   in the collection. Use the Trajectory_Control object to adjust the position and the Dummy_mol object 
@@ -166,7 +166,7 @@ Example 2: Radical Bromination of Propene (First Step) - B3LYP/def2-SVP
 [1] F. Neese, "Software update: the ORCA program system — Version 6.0", Wiley Interdiscip. Rev.: Comput. Mol. Sci., 
 15, e70019 (2025). doi: 10.1002/wcms.70019.
 
-Example 3 1-5-H-Shift (Splitting for BatchMol) B3LYP/cc-pVDZ
+Example 3 1-5-H-Shift (Splitting for BatchMol) B3LYP/cc-pVDZ [2]
   Pathway Description:
   This case study explores the [1,5]-sigmatropic hydrogen migration between the terminal methyl group 
   and the carbonyl oxygen of but-2-en-1-one. This classic rearrangement serves as a perfect model to 
@@ -183,11 +183,27 @@ Example 3 1-5-H-Shift (Splitting for BatchMol) B3LYP/cc-pVDZ
   Electronic Dynamics: The provided examples demonstrate how to visualize the dynamic evolution 
   of molecular properties, such as the Highest Occupied Molecular Orbital (HOMO) and the Electrostatic 
   Potential (ESP), as the reaction progresses.
-  Raytracing Excellence: Pre-configured POV-Ray files for HOMO and ESP transitions are included, 
+  Raytracing Excellence: 
+  # POV-Ray [4]:
+  Pre-configured POV-Ray *.inc files for HOMO and ESP transitions are included, 
   showcasing the transformation from a reactant to a product in publication-quality renderings.
+  Use the provided video.pov and video.ini templates to render the POV-Ray frames and combine 
+  them into an MP4 video (e.g., via FFmpeg [5]).
+  # Blender [3]:
+  Open 'movie_template.blend' and import the respective .glb file. 
+  Run the *_setup.py script to initialize the scene. Use the Trajectory_Control 
+  object for positioning and scaling, and fine-tune the appearance via the 
+  Dummy* objects (note: surface properties must be defined in the script before execution). 
+  Finally, import the 'h-shift_scalebar.glb' separately and position it in the scene 
+  before rendering the video.
 
 [2] D. G. A. Smith, L. A. Burns, et al., "Psi4 1.4: Open-source software for high-throughput quantum chemistry", 
 J. Chem. Phys., 152, 184108 (2020). doi: 10.1063/5.0006002.
+
+# Rendering Software:
+[3] Blender Foundation (2026). Blender (Version 5.1): Cycles Rendering Engine [Computer software]. Retrieved from blender.org
+[4] POV-Ray Team (2013). Persistence of Vision Raytracer (Version 3.7) [Computer software]. GNU Affero General Public License. Retrieved from povray.org
+[5] Tomar, S. (2006). Converting video formats with FFmpeg. Linux Journal, 2006(146), 10.
 
 ## Installation
 
