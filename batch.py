@@ -1636,7 +1636,7 @@ def main(files,o_file,obj_name,iso_level, n_pts, padding, type,cmap,orb_index,sp
                                     filename=o_file, idx=i)
                         export_pov_esp(ESP_mesh, filename=o_file,object_name=obj_name, 
                                     cmap_name=cmap, clim=[v_min,v_max],idx=i) 
-            print(f"\nDone! POV-Ray *.inc File written to {o_file}.glb")
+            print(f"\nDone! POV-Ray *.inc File written to {o_file}")
     elif o_mode == "bld":
         #Scalebar
         if type in ["esp", "spin-m"]:
